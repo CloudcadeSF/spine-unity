@@ -88,8 +88,8 @@ public class BoundingBoxFollower : MonoBehaviour {
 			skeletonRenderer = GetComponentInParent<SkeletonRenderer>();
 
 		if (skeletonRenderer != null) {
-			skeletonRenderer.OnReset -= HandleReset;
-			skeletonRenderer.OnReset += HandleReset;
+			skeletonRenderer.OnRebuild -= HandleReset;
+			skeletonRenderer.OnRebuild += HandleReset;
 
 			if (hasReset)
 				HandleReset(skeletonRenderer);
@@ -97,7 +97,7 @@ public class BoundingBoxFollower : MonoBehaviour {
 	}
 
 	void OnDisable () {
-		skeletonRenderer.OnReset -= HandleReset;
+		skeletonRenderer.OnRebuild -= HandleReset;
 	}
 
 	void Start () {
@@ -115,9 +115,9 @@ public class BoundingBoxFollower : MonoBehaviour {
 		colliderTable.Clear();
 
 		if (skeletonRenderer.skeleton == null) {
-			skeletonRenderer.OnReset -= HandleReset;
-			skeletonRenderer.Reset();
-			skeletonRenderer.OnReset += HandleReset;
+			skeletonRenderer.OnRebuild -= HandleReset;
+			skeletonRenderer.Initialize(false);
+			skeletonRenderer.OnRebuild += HandleReset;
 		}
 
 

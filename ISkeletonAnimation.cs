@@ -33,7 +33,7 @@ using UnityEngine;
 using System.Collections;
 using Spine;
 
-public delegate void UpdateBonesDelegate (SkeletonRenderer skeletonRenderer);
+public delegate void UpdateBonesDelegate (ISkeletonAnimation skeletonRenderer);
 public interface ISkeletonAnimation {
 	event UpdateBonesDelegate UpdateLocal;
 	event UpdateBonesDelegate UpdateWorld;

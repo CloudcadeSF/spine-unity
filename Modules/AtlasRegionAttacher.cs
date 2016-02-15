@@ -51,7 +51,7 @@ public class AtlasRegionAttacher : MonoBehaviour {
 	Atlas atlas;
 
 	void Awake () {
-		GetComponent<SkeletonRenderer>().OnReset += Apply;
+		GetComponent<SkeletonRenderer>().OnRebuild += Apply;
 	}
 
 

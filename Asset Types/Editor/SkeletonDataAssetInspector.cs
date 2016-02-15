@@ -784,7 +784,7 @@ public class SkeletonDataAssetInspector : Editor {
 		Skin skin = (Skin)o;
 
 		m_skeletonAnimation.initialSkinName = skin.Name;
-		m_skeletonAnimation.Reset();
+		m_skeletonAnimation.Initialize(true);
 		m_requireRefresh = true;
 
 		EditorPrefs.SetString(m_skeletonDataAssetGUID + "_lastSkin", skin.Name);

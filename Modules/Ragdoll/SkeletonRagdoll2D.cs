@@ -1,5 +1,5 @@
 ﻿/*****************************************************************************
- * SkeletonRagdoll added by Mitch Thompson
+ * SkeletonRagdoll2D added by Mitch Thompson
  * Full irrevocable rights and permissions granted to Esoteric Software
 *****************************************************************************/
 
@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using Spine;
 
 [RequireComponent(typeof(SkeletonRenderer))]
-public class SkeletonRagdoll : MonoBehaviour {
+public class SkeletonRagdoll2D : MonoBehaviour {
 	private static Transform helper;
 
 	[Header("Hierarchy")]
@@ -22,9 +22,7 @@ public class SkeletonRagdoll : MonoBehaviour {
 	public bool applyOnStart;
 	[Tooltip("Set RootRigidbody IsKinematic to true when Apply is called.")]
 	public bool pinStartBone;
-	[Tooltip("Enable Collision between adjacent ragdoll elements (IE: Neck and Head)")]
-	public bool enableJointCollision;
-	public bool useGravity = true;
+	public float gravityScale = 1;
 	[Tooltip("Warning!  You will have to re-enable and tune mix values manually if attempting to remove the ragdoll system.")]
 	public bool disableIK = true;
 	[Tooltip("If no BoundingBox Attachment is attached to a bone, this becomes the default Width or Radius of a Bone's ragdoll Rigidbody")]
@@ -40,7 +38,7 @@ public class SkeletonRagdoll : MonoBehaviour {
 	[Range(0, 1)]
 	public float mix = 1;
 
-	public Rigidbody RootRigidbody {
+	public Rigidbody2D RootRigidbody {
 		get {
 			return this.rootRigidbody;
 		}
@@ -54,7 +52,7 @@ public class SkeletonRagdoll : MonoBehaviour {
 
 	public Vector3 EstimatedSkeletonPosition {
 		get {
-			return rootRigidbody.position - rootOffset;
+			return this.rootRigidbody.position - rootOffset;
 		}
 	}
 
@@ -64,14 +62,15 @@ public class SkeletonRagdoll : MonoBehaviour {
 		}
 	}
 
-	private Rigidbody rootRigidbody;
+	private Rigidbody2D rootRigidbody;
 	private ISkeletonAnimation skeletonAnim;
 	private Skeleton skeleton;
 	private Dictionary<Bone, Transform> boneTable = new Dictionary<Bone, Transform>();
 	private Bone startingBone;
 	private Transform ragdollRoot;
-	private Vector3 rootOffset;
+	private Vector2 rootOffset;
 	private bool isActive;
+
 
 	IEnumerator Start () {
 		skeletonAnim = (ISkeletonAnimation)GetComponent<SkeletonRenderer>();
@@ -115,27 +114,27 @@ public class SkeletonRagdoll : MonoBehaviour {
 		skeleton.UpdateWorldTransform();
 	}
 
-	public Rigidbody[] GetRigidbodyArray () {
+	public Rigidbody2D[] GetRigidbodyArray () {
 		if (!isActive)
-			return new Rigidbody[0];
+			return new Rigidbody2D[0];
 
-		Rigidbody[] arr = new Rigidbody[boneTable.Count];
+		Rigidbody2D[] arr = new Rigidbody2D[boneTable.Count];
 		int i = 0;
 		foreach (Transform t in boneTable.Values) {
-			arr[i] = t.GetComponent<Rigidbody>();
+			arr[i] = t.GetComponent<Rigidbody2D>();
 			i++;
 		}
 
 		return arr;
 	}
 
-	public Rigidbody GetRigidbody (string boneName) {
+	public Rigidbody2D GetRigidbody (string boneName) {
 		var bone = skeleton.FindBone(boneName);
 		if (bone == null)
 			return null;
 
 		if (boneTable.ContainsKey(bone))
-			return boneTable[bone].GetComponent<Rigidbody>();
+			return boneTable[bone].GetComponent<Rigidbody2D>();
 
 		return null;
 	}
@@ -160,12 +159,11 @@ public class SkeletonRagdoll : MonoBehaviour {
 		startingBone = ragdollRootBone;
 		RecursivelyCreateBoneProxies(ragdollRootBone);
 
-		rootRigidbody = boneTable[ragdollRootBone].GetComponent<Rigidbody>();
+		rootRigidbody = boneTable[ragdollRootBone].GetComponent<Rigidbody2D>();
 		rootRigidbody.isKinematic = pinStartBone;
-
 		rootRigidbody.mass = rootMass;
 
-		List<Collider> boneColliders = new List<Collider>();
+		List<Collider2D> boneColliders = new List<Collider2D>();
 
 		foreach (var pair in boneTable) {
 			var b = pair.Key;
@@ -173,7 +171,7 @@ public class SkeletonRagdoll : MonoBehaviour {
 			Bone parentBone = null;
 			Transform parentTransform = transform;
 
-			boneColliders.Add(t.GetComponent<Collider>());
+			boneColliders.Add(t.GetComponent<Collider2D>());
 
 			if (b != startingBone) {
 				parentBone = b.Parent;
@@ -195,29 +193,27 @@ public class SkeletonRagdoll : MonoBehaviour {
 				rootOffset = t.position - transform.position;
 			}
 
-			var rbParent = parentTransform.GetComponent<Rigidbody>();
+			var rbParent = parentTransform.GetComponent<Rigidbody2D>();
 
 			if (rbParent != null) {
-				var joint = t.gameObject.AddComponent<HingeJoint>();
+				var joint = t.gameObject.AddComponent<HingeJoint2D>();
 				joint.connectedBody = rbParent;
 				Vector3 localPos = parentTransform.InverseTransformPoint(t.position);
 				localPos.x *= 1;
 				joint.connectedAnchor = localPos;
-				joint.axis = Vector3.forward;
-				joint.GetComponent<Rigidbody>().mass = joint.connectedBody.mass * massFalloffFactor;
-				JointLimits limits = new JointLimits();
+				joint.GetComponent<Rigidbody2D>().mass = joint.connectedBody.mass * massFalloffFactor;
+				JointAngleLimits2D limits = new JointAngleLimits2D();
 				limits.min = -rotationLimit;
 				limits.max = rotationLimit;
 				joint.limits = limits;
 				joint.useLimits = true;
-				joint.enableCollision = enableJointCollision;
 			}
 		}
 
 		for (int x = 0; x < boneColliders.Count; x++) {
 			for (int y = 0; y < boneColliders.Count; y++) {
 				if (x == y) continue;
-				Physics.IgnoreCollision(boneColliders[x], boneColliders[y]);
+				Physics2D.IgnoreCollision(boneColliders[x], boneColliders[y]);
 			}
 		}
 
@@ -264,42 +260,48 @@ public class SkeletonRagdoll : MonoBehaviour {
 		t.parent = transform;
 
 		t.localPosition = new Vector3(b.WorldX, b.WorldY, 0);
+		//TODO: deal with WorldFlipY
         // MITCH
-        // t.localRotation = Quaternion.Euler(0, 0, b.WorldFlipX ^ b.WorldFlipY ? -b.WorldRotation : b.WorldRotation);
+		// t.localRotation = Quaternion.Euler(0, 0, b.WorldFlipX ? -b.WorldRotation : b.WorldRotation);
         t.localRotation = Quaternion.Euler(0, 0, b.WorldRotationX);
-        t.localScale = new Vector3(b.WorldScaleX, b.WorldScaleY, 1);
+		t.localScale = new Vector3(b.WorldScaleX, b.WorldScaleY, 0);
 
 		float length = b.Data.Length;
 
+		//TODO proper ragdoll branching
 		var colliders = AttachBoundingBoxRagdollColliders(b);
 
 		if (length == 0) {
 			//physics
 			if (colliders.Count == 0) {
-				var ball = go.AddComponent<SphereCollider>();
-				ball.radius = thickness / 2f;
+				var circle = go.AddComponent<CircleCollider2D>();
+				circle.radius = thickness / 2f;
 			}
 		} else {
 			//physics
 			if (colliders.Count == 0) {
-				var box = go.AddComponent<BoxCollider>();
-				box.size = new Vector3(length, thickness, thickness);
+				var box = go.AddComponent<BoxCollider2D>();
+				box.size = new Vector2(length, thickness);
+#if UNITY_5
                 // MITCH
-                // box.center = new Vector3((b.WorldFlipX ? -length : length) / 2, 0);
-                box.center = new Vector3(length / 2, 0);
-            }
+				// box.offset = new Vector2((b.WorldFlipX ? -length : length) / 2, 0);
+                box.offset = new Vector2(length / 2, 0);
+#else
+				box.center = new Vector2((b.WorldFlipX ? -length : length) / 2, 0);
+#endif
+			}
 		}
 
-		var rb = go.AddComponent<Rigidbody>();
-		rb.constraints = RigidbodyConstraints.FreezePositionZ;
+		var rb = go.AddComponent<Rigidbody2D>();
+		rb.gravityScale = gravityScale;
+
 		foreach (Bone child in b.Children) {
 			RecursivelyCreateBoneProxies(child);
 		}
 	}
 
-	List<Collider> AttachBoundingBoxRagdollColliders (Bone b) {
-		List<Collider> colliders = new List<Collider>();
-
+	List<Collider2D> AttachBoundingBoxRagdollColliders (Bone b) {
+		List<Collider2D> colliders = new List<Collider2D>();
 		Transform t = boneTable[b];
 		GameObject go = t.gameObject;
 		var skin = skeleton.Skin;
@@ -307,12 +309,12 @@ public class SkeletonRagdoll : MonoBehaviour {
 			skin = skeleton.Data.DefaultSkin;
 
         // MITCH
-        // bool flipX = b.WorldFlipX;
-        // bool flipY = b.WorldFlipY;
+		// bool flipX = b.WorldFlipX;
+		// bool flipY = b.WorldFlipY;
         bool flipX = false;
-        bool flipY = false;
+		bool flipY = false;
 
-        List<Attachment> attachments = new List<Attachment>();
+		List<Attachment> attachments = new List<Attachment>();
 		foreach (Slot s in skeleton.Slots) {
 			if (s.Bone == b) {
 				skin.FindAttachmentsForSlot(skeleton.Slots.IndexOf(s), attachments);
@@ -321,22 +323,20 @@ public class SkeletonRagdoll : MonoBehaviour {
 						if (!a.Name.ToLower().Contains("ragdoll"))
 							continue;
 
-						var collider = go.AddComponent<BoxCollider>();
-						var bounds = SkeletonUtility.GetBoundingBoxBounds((BoundingBoxAttachment)a, thickness);
-
-						collider.center = bounds.center;
-						collider.size = bounds.size;
+						var collider = SkeletonUtility.AddBoundingBoxAsComponent((BoundingBoxAttachment)a, go, false);
 
 						if (flipX || flipY) {
-							Vector3 center = collider.center;
+							Vector2[] points = collider.points;
 
-							if (flipX)
-								center.x *= -1;
+							for (int i = 0; i < points.Length; i++) {
+								if (flipX)
+									points[i].x *= -1;
 
-							if (flipY)
-								center.y *= -1;
+								if (flipY)
+									points[i].y *= -1;
+							}
 
-							collider.center = center;
+							collider.points = points;
 						}
 
 						colliders.Add(collider);
@@ -348,13 +348,13 @@ public class SkeletonRagdoll : MonoBehaviour {
 		return colliders;
 	}
 
-	void UpdateWorld (SkeletonRenderer skeletonRenderer) {
+	void UpdateWorld (ISkeletonAnimation skeletonRenderer) {
 		foreach (var pair in boneTable) {
 			var b = pair.Key;
 			var t = pair.Value;
-			// bool flip = false;
-			bool flipX = false;  //TODO:  deal with negative scale instead of Flip Key for Spine 3.0
-			bool flipY = false;  //TODO:  deal with negative scale instead of Flip Key for Spine 3.0
+			//bool flip = false;
+			bool flipX = false;  //TODO:  deal with negative scale instead of Flip Key
+			bool flipY = false;  //TODO:  deal with negative scale instead of Flip Key
 			Bone parentBone = null;
 			Transform parentTransform = transform;
 
@@ -362,17 +362,17 @@ public class SkeletonRagdoll : MonoBehaviour {
 				parentBone = b.Parent;
 				parentTransform = boneTable[parentBone];
                 // MITCH
-                // flipX = parentBone.WorldFlipX;
-                // flipY = parentBone.WorldFlipY;
+				// flipX = parentBone.WorldFlipX;
+				// flipY = parentBone.WorldFlipY;
 
-            } else {
+			} else {
 				parentBone = b.Parent;
 				parentTransform = ragdollRoot;
 				if (b.Parent != null) {
                     // MITCH
-                    // flipX = b.worldFlipX;
-                    // flipY = b.WorldFlipY;
-                } else {
+					// flipX = b.worldFlipX;
+					// flipY = b.WorldFlipY;
+				} else {
 					flipX = b.Skeleton.FlipX;
 					flipY = b.Skeleton.FlipY;
 				}
@@ -423,4 +423,14 @@ public class SkeletonRagdoll : MonoBehaviour {
 
 		return a;
 	}
+
+	void OnDrawGizmosSelected () {
+		if (isActive) {
+			Gizmos.DrawWireSphere(transform.position, thickness * 1.2f);
+			Vector3 newTransformPos = rootRigidbody.position - rootOffset;
+			Gizmos.DrawLine(transform.position, newTransformPos);
+			Gizmos.DrawWireSphere(newTransformPos, thickness * 1.2f);
+		}
+	}
+
 }
