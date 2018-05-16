@@ -45,8 +45,9 @@ namespace Spine.Unity.Modules {
 		[SerializeField] protected List<SlotMaterialOverride> customSlotMaterials = new List<SlotMaterialOverride>();
 		[SerializeField] protected List<AtlasMaterialOverride> customMaterialOverrides = new List<AtlasMaterialOverride>();
 
-		#if UNITY_EDITOR
-		void Reset () {
+        // chase-ccsf :: making this publicly available anywhere. i believe this was a local change from classic they had
+		//#if UNITY_EDITOR
+		public void Reset () {
 			skeletonRenderer = GetComponent<SkeletonRenderer>();
 
 			// Populate atlas list 
@@ -67,7 +68,7 @@ namespace Spine.Unity.Modules {
 				customMaterialOverrides = initialAtlasMaterialOverrides;
 			}
 		}
-		#endif
+		//#endif
 		#endregion
 
 		void SetCustomSlotMaterials () {
@@ -111,7 +112,8 @@ namespace Spine.Unity.Modules {
 			}
 		}
 
-		void SetCustomMaterialOverrides () {
+        // chase-ccsf :: making this publicly available. i believe this was a local change from classic they had
+		public void SetCustomMaterialOverrides () {
 			if (skeletonRenderer == null) {
 				Debug.LogError("skeletonRenderer == null");
 				return;
@@ -128,7 +130,8 @@ namespace Spine.Unity.Modules {
 			#endif
 		}
 
-		void RemoveCustomMaterialOverrides () {
+        // chase-ccsf :: making this publicly available. i believe this was a local change from classic they had
+		public void RemoveCustomMaterialOverrides () {
 			if (skeletonRenderer == null) {
 				Debug.LogError("skeletonRenderer == null");
 				return;
@@ -150,6 +153,23 @@ namespace Spine.Unity.Modules {
 			}
 			#endif
 		}
+
+        // chase-ccsf :: adding this.  i believe this was added on classic
+        public void SetCustomMaterialOverride(Material origMat, Material newMat)
+        {
+            if (skeletonRenderer == null)
+            {
+                Debug.LogError("skeleton renderer == null");
+                return;
+            }
+            skeletonRenderer.CustomMaterialOverride[origMat] = newMat;
+        }
+
+        // chase-ccsf :: adding this.  i believe this was added on classic
+        public void RemoveCustomMaterialOverride(Material origMat)
+        {
+            skeletonRenderer.CustomMaterialOverride.Remove(origMat);
+        }
 			
 		// OnEnable applies the overrides at runtime, and when the editor loads.
 		void OnEnable () {
